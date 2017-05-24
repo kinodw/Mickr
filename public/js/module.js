@@ -1,7 +1,10 @@
 (function(){
-  const electron = require('electron');
+  // Node.js で動作しているか
+  var isNode = (typeof process !== "undefined" && typeof require !== "undefined");
   var ipcRenderer = null;
   var capture = null;
+
+  if(isNode) window.electron = require('electron');
   var w = window.innerWidth;
   var h = window.innerHeight;
   /* ランダムなID(文字列)の生成 */
@@ -10,25 +13,44 @@
   window.generateRandomInt = (min,max) => Math.floor( Math.random() * (max - min + 1) ) + min;
 
   document.addEventListener('DOMContentLoaded', () => {
-    ipcRenderer = electron.ipcRenderer;
-    capture = electron.desktopCapturer;
-
-    var div = document.createElement('div');
-    div.id = "sky";
-    div.className = 'sky';
-    document.body.appendChild(div)
+    if(isNode){
+      ipcRenderer = electron.ipcRenderer;
+      capture = electron.desktopCapturer;
+    }
 
     /* 雲を表示するベースの生成 */
     window.Sky = class Sky {
-      constructor(option){
-        var self = this;
-        this.el = document.getElementById('sky');
+      constructor(elementID){
+        if(elementID === undefined){
+          var div = document.createElement('div');
+          div.id = "sky";
+          div.className = 'sky';
+          document.body.appendChild(div)
+          this.element = div;
+        }else{
+          this.element = document.getElementById(elementID);
+        }
         this.clouds = [];
         this.selected = [];
 
-        ipcRenderer.on('mickr', (e, d) => {
+        if(isNode) this.setRendererEvent()
+      }
+
+      setRendererEvent(){
+        this.element.addEventListener('click', e => {
+          if(this.clouds.length > 0){
+            if(!this.clouds.some(c=>c.isCollision(e.pageX, e.pageY))){
+              ipcRenderer.send('collision', {
+                transparent_mode: true
+              });
+            }
+          }
+        })
+
+        ipcRenderer.on('mickr', (e, data) => {
           console.log('mickr');
-          this.addCloud(d)
+          ipcRenderer.send('ack', {"text": 'ack'});
+          this.addCloud(data)
         });
 
         /* 透明画面の切り替え */
@@ -49,108 +71,104 @@
           }
         });
         ipcRenderer.on('click', (e, data) => {
-          console.log(data);
           var text = "";
-          if(this.clouds.some(c=>{
+          if(this.clouds.some(c => {
             var q = c.isCollision(data.x, data.y)
-            console.log(q);
             if(q){text = c.text}
             return q
-          })){
-            console.log("col");
+          }))
+          {
             ipcRenderer.send('collision', {
               text: text,
               transparent_mode: false
             });
           }
-          else{
-            ipcRenderer.send('collision', {
-              transparent_mode: true
-            });
-          }
         });
+      }
+
+      appendCloud(cloud){
+        cloud.createCloud(option);
+        cloud.addHandler(option);
+        cloud.addGoAround(option);
+        this.clouds.push(cloud);
       }
 
       /* sky上に雲の追加 */
       addCloud(option){
-        option.parent = option.parent || document.getElementById('sky');
-        option.template = option.template || this.template;
-        option.mouseover = option.mouseover || this.mouseover.bind(this);
-        option.mouseout = option.mouseout || this.mouseout.bind(this);
-        option.onComplete = option.onComplete || this.onComplete.bind(this);
-        option.onClick = option.onClick || this.toggleSelect.bind(this);
-
-        option.swig = option.swig === undefined ? true : false;
-        option.rotation = option.rotation === undefined ? true : false;
-        option.around = option.around === undefined ? true : false;
-        option.visible = option.visible === undefined ? true : false;
+        if(option){
+          option.parent = option.parent || document.getElementById('sky');
+          option.mouseover = option.mouseover || this.mouseover.bind(this);
+          option.mouseout = option.mouseout || this.mouseout.bind(this);
+          option.onComplete = option.onComplete || this.onComplete.bind(this);
+          option.onClick = option.onClick || this.onClick.bind(this);
+        }
 
         var cloud = new Cloud(option)
 
         cloud.createCloud(option);
         cloud.addHandler(option);
-        if(option.around) cloud.addGoAround(option);
+        cloud.addGoAround(option);
 
         this.clouds.push(cloud);
         return cloud;
       };
 
       outerPause(){
-        // this.clouds.forEach(cloud => {
-        //   if(!cloud.selected) cloud.outer_tl.pause();
-        // });
+        this.clouds.forEach(cloud => {
+          if(!cloud.selected) cloud.outer_tl.pause();
+        });
       };
 
       outerResume(){
-        // this.clouds.forEach(function(cloud) {
-        //   if (!cloud.selected) cloud.outer_tl.resume();
-        // });
+        this.clouds.forEach(function(cloud) {
+          if (!cloud.selected) cloud.outer_tl.resume();
+        });
       };
 
       innerPause(){
-        // this.selected.forEach(cloud => {
-        //   if(cloud.selected) cloud.inner_tl.pause();
-        // });
+        this.selected.forEach(cloud => {
+          if(cloud.selected) cloud.inner_tl.pause();
+        });
       };
 
       innerResume(){
-        // this.selected.forEach(function(cloud) {
-        //   if (cloud.selected) cloud.inner_tl.resume();
-        // });
+        this.selected.forEach(function(cloud) {
+          if (cloud.selected) cloud.inner_tl.resume();
+        });
       };
 
       mouseover(cloud){
-        // if (cloud.selected) this.innerPause();
-        // else this.outerPause();
+        if (cloud.selected) this.innerPause();
+        else this.outerPause();
       };
 
       mouseout(cloud){
-        // if(cloud.selected) this.innerResume();
-        // else this.outerResume();
+        if(cloud.selected) this.innerResume();
+        else this.outerResume();
       };
 
       onComplete(cloud){this.clouds.splice(this.clouds.indexOf(cloud), 1);};
 
       returnClouds(){
         this.selected.forEach(c => {
-          c.toggleSelect();
+          c.onClick();
           this.clouds.push(c);
         });
         this.selected = [];
       };
 
-      toggleSelect(cloud){
-        // if (!cloud.selected) {
-        //   this.selected.push(cloud);
-        //   this.clouds.splice(this.clouds.indexOf(cloud), 1);
-        //   this.outerResume();
-        // } else {
-        //   this.selected.splice(this.selected.indexOf(cloud), 1);
-        //   this.clouds.push(cloud);
-        //   this.innerResume();
-        // }
-        //
-        // cloud.toggleSelect();
+      onClick(cloud){
+        if (!cloud.selected) {
+          this.selected.push(cloud);
+          this.clouds.splice(this.clouds.indexOf(cloud), 1);
+          this.outerResume();
+        }
+        else {
+          this.selected.splice(this.selected.indexOf(cloud), 1);
+          this.clouds.push(cloud);
+          this.innerResume();
+        }
+        cloud.onClick();
       };
 
       selectedText(){return(this.selected ? this.selected.map(cloud => cloud.text) : []);};
@@ -160,18 +178,29 @@
     /* 雲オブジェクトの生成 */
     window.Cloud = class Cloud{
       constructor(option){
+        option = option !== undefined ? option : {
+          parent: document.getElementById('sky'),
+          id: generateRandomID(),
+          size: 1.0,
+          tags: ["none"]
+        }
         this.parent = option.parent || document.getElementById('sky');
         this.element = null;
         this.outer_tl = null;
         this.inner_tl = null;
+        this.clickAnimation = () => {}
+
+        option.swing = option.swing === undefined ? true : false;
+        option.rotation = option.rotation === undefined ? false : true;
+        option.around = option.around === undefined ? true : false;
+        option.visible = option.visible === undefined ? true : false;
+
+        this.rotation = option.rotation;
+        console.log(this.rotation);
 
         this.id = option.id || generateRandomID();
         this.size = option.size || 1.0;
-        this.tags = option.tags || ["none"],
-
-        // this.createCloud(option);
-        // this.addHandler(option);
-        // if(option.around) this.addGoAround(option);
+        this.tags = option.tags || ["none"];
       };
 
       isCollision(x, y){
@@ -184,6 +213,8 @@
 
       createCloud(option){
         if(this.element) return 0;
+        option.parent = option.parent || this.parent;
+        option.color = option.color || "#FFFFFF";
         switch(option.type) {
           case "rect":
             console.log("rect");
@@ -207,10 +238,12 @@
             console.log(this.element);
             this.setColor(option.color);
             this.setText(option.text);
+            this.setImage(option.url);
             this.setPosition(option.position)
-            // this.setSize(option.size)
+            this.setSize(option.size)
             this.parent.appendChild(this.element);
         }
+        this.setClickAnimation(this.centering)
       };
 
       getSize(){
@@ -220,9 +253,8 @@
         }
       }
 
-      setSize(width){
-        this.element.width = width + '%';
-        this.element.height = height + '%';
+      setSize(scale, duration=0.5){
+        TweenLite.to(this.element, duration, {scale: scale})
       }
 
       getPosition(){
@@ -236,6 +268,7 @@
         position = position || {x:0, y:0};
         this.element.style.left = position.x+"px";
         this.element.style.top = position.y+"px";
+        TweenLite.to(this.element, 2, {left: position.x, right: position.y})
       }
 
       setText(text){
@@ -243,7 +276,17 @@
         this.element.querySelector('.cloud_text').innerText = text;
       };
 
-      around(start={x: 0, y:0}, end={x:0, y:0}, swing=true, rotation=true, onComplete=()=>{}){
+      setColor(color){
+        this.color = color || "#FFFFFF";
+        this.element.querySelector('.cloud path').style.fill = color;
+      };
+
+      setImage(url){
+        this.src = url;
+        if(url) this.element.querySelector('.cloud_image').src = url;
+      }
+
+      Around(start={x: 0, y:0}, end={x:0, y:0}, swing=true, rotation=true, onComplete=()=>{}){
         var tl = new TimelineLite({onComplete: onComplete, onUpdateParams: ["{self}"]});
 
         tl.add(TweenLite.fromTo(this.element, 2, {
@@ -288,48 +331,38 @@
         return tl;
       }
 
-      setColor(color){
-        this.color = color || "#FFFFFF";
-        this.element.querySelector('.cloud path').style.fill = color;
-      };
-
-      setImage(url){
-        var img = new Image();
-        img.addEventListener('loadend', ()=>{
-          this.element.querySelector('.cloud_image').innerHtml = img;
-        })
-        img.src = url;
-      }
-
       addGoAround(option){
-        this.outer_tl = this.goAround({
-          el: this.element,
-          swing_right: option.swing_right === undefined ? option.swing: option.swing_right,
-          swing_down: option.swing_down === undefined ? option.swing : option.swing_down,
-          swing_left: option.swing_left === undefined ? option.swing : option.swing_left,
-          swing_up: option.swing_up === undefined ? option.swing : option.swing_up,
-          rotation: option.rotation,
-          position: option.position,
-          onUpdate: (tl => {this.now = tl.totalTime();}).bind(this),
-          onComplete: (() => {this.remove();}).bind(this)
-        });
+        if(option.around){
+          this.outer_tl = this.goAround({
+            el: this.element,
+            swing_right: option.swing_right === undefined ? option.swing: option.swing_right,
+            swing_down: option.swing_down === undefined ? option.swing : option.swing_down,
+            swing_left: option.swing_left === undefined ? option.swing : option.swing_left,
+            swing_up: option.swing_up === undefined ? option.swing : option.swing_up,
+            rotation: option.rotation,
+            position: option.position,
+            onUpdate: (tl => {this.now = tl.totalTime();}).bind(this),
+            onComplete: (() => {this.remove();}).bind(this)
+          });
+        }
       };
 
-      remove(){this.parent.removeChild(this.element);};
+      remove(){
+        this.parent.removeChild(this.element);
+      };
 
       addHandler(option){
-        var self = this;
         this.element.addEventListener('mouseover', (() => {option.mouseover(this);}).bind(this));
         this.element.addEventListener('mouseout', (() => {option.mouseout(this);}).bind(this));
         this.element.addEventListener('click', (e => {if(option.onClick) option.onClick(this);}).bind(this));
       };
 
-      toggleSelect(){
+      onClick(){
         if (this.selected) {
           this.inner_tl.pause();
           this.returnOuterAround();
         } else {
-        //   this.inner_tl = this.goAroundSmall(this.element);
+          this.inner_tl = this.clickAnimation();
           this.selected = true;
         }
       };
@@ -381,27 +414,24 @@
         return tl;
       };
 
-      goTrack(option){
-        var tl = new TimelineLite({onComplete: option.onComplete, onUpdate: option.onUpdate, onUpdateParams: ["{self}"]});
+      setClickAnimation(func){
+        if(func !== undefined) this.clickAnimation = func;
+      }
 
-        tl.add('Around');
-        tl.add('Right');
-        tl.add(this.goRight({
-          el: option.el,
-          duration: option.position ? 9 * (option.position.x / w) : 9,
-          swing: option.swing_right,
-          rotation: option.rotation
-        }));
-        tl.add('Down');
-        tl.add(this.goDown({el: option.el, duration: 8, swing: option.swing_down, rotation: option.rotation}));
-        tl.add('Left');
-        tl.add(this.goLeft({el: option.el, duration: 9, swing: option.swing_left, rotation: option.rotation}));
-        tl.add('Up');
-        tl.add(this.goUp({el: option.el, duration: 8, swing: option.swing_up, rotation: option.rotation}));
-        tl.add('Done');
-
+      centering(){
+        var tl = new TimelineLite();
+        var animations = [TweenLite.to(this.element, 2, {
+          rotation: 0,
+          xPercent: 0,
+          yPercent: 0,
+          left: w/2 - 100,
+          top: h/2 - 100
+        }), TweenLite.to(this.element, 2, {
+          scale: 3.0
+        })];
+        tl.add(animations);
         return tl;
-      };
+      }
 
       goAroundSmall(){
         var tl = new TimelineLite({
@@ -628,25 +658,28 @@
 
 
       returnOuterAround(){
+        var tl = new TimelineLite();
+        tl.add(TweenLite.to(this.element, 0.5, {scale: 1.0}))
         switch (this.outer_state) {
           case 'Right':
-            this.goRight({
+            tl.add(this.goRight({
               duration: 1.0,
-              rotation: true,
+              rotation: this.rotation,
               swing: false,
               onComplete: (() => {
                 this.selected = false;
                 this.outer_tl.seek('Down').resume();
               }).bind(this)
-            });
+            }));
             break;
           case 'Down':
             this.goDown({
               duration: 1.0,
-              rotation: true,
+              rotation: this.rotation,
               swing: false,
               onComplete: (() => {
                 this.selected = false;
+                TweenLite.to(this.element, 2, {scale: 1})
                 this.outer_tl.seek('Left').resume();
               }).bind(this)
             });
@@ -654,10 +687,11 @@
           case 'Left':
             this.goLeft({
               duration: 1.0,
-              rotation: true,
+              rotation: this.rotation,
               swing: false,
               onComplete: (() => {
                 this.selected = false;
+                TweenLite.to(this.element, 2, {scale: 1})
                 this.outer_tl.seek('Up').resume();
               }).bind(this)
             });
@@ -665,10 +699,11 @@
           case 'Up':
             this.goUp({
               duration: 1.0,
-              rotation: true,
+              rotation: this.rotation,
               swing: false,
               onComplete: (() => {
                 this.selected = false;
+                TweenLite.to(this.element, 2, {scale: 1})
                 this.outer_tl.seek('Done').resume();
               }).bind(this)
             });
@@ -677,13 +712,17 @@
       };
       createCloudElement(){
         var div = document.createElement('div')
+        var svg_div = document.createElement('div')
         var text = document.createElement('div')
         var svg = document.createElementNS("http://www.w3.org/2000/svg", 'svg')
         var path = document.createElementNS("http://www.w3.org/2000/svg", 'path')
+        var _img = document.createElement('img')
         div.id = "rcmnd";
         div.classList.add('rcmnd');
         div.setAttribute('draggable', true);
+        svg_div.classList.add("cloud-div");
         text.className = "cloud_text flexiblebox";
+        _img.className = "cloud_image flexiblebox";
         svg.setAttribute('xmlns', "http://www.w3.org/2000/svg");
         svg.setAttribute('xmlns:xlink', "http://www.w3.org/1999/xlink");
         svg.setAttribute("xml:space","preserve");
@@ -704,7 +743,9 @@
               c4.795,0,9.084-1.41,11.966-3.629c1.977,0.493,4.042,0.76,6.172,0.76c13.647,0,24.798-10.673,25.571-24.127
               c7.288-3.235,12.374-10.529,12.374-19.017C503.776,264.897,498.665,257.587,491.348,254.364z`);
         svg.appendChild(path)
-        div.appendChild(svg)
+        svg_div.appendChild(svg)
+        div.appendChild(_img)
+        div.appendChild(svg_div)
         div.appendChild(text)
         return div;
       }

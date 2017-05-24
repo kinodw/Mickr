@@ -45,4 +45,6 @@ app.on('window-all-closed', () => {
 });
 
 /* Mainプロセス起動時の処理 */
-app.on('activate', () => {wm.activateWindows();});
+app.on('activate', () => {
+  wm.activateWindows();
+});

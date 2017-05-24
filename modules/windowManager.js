@@ -4,8 +4,9 @@ const electron = require('electron')
 const EventEmitter = new require('events').EventEmitter;
 const {ipcMain, BrowserWindow } = electron;
 const MickrClient = require('./MickrClient.js')
+const settingWindow = require('./settingWindow.js');
 // const GoogleDriveAPI = require('./DriveAPI/app.js')
-const ioHook = require('iohook');
+// const ioHook = require('iohook');
 
 
 class windowManager extends EventEmitter{
@@ -22,18 +23,13 @@ class windowManager extends EventEmitter{
   activateWindows(){
     var mainWindow = this.getMainWindow();
     if(this.client == null){
-      this.subWindow = new BrowserWindow({
-        width: 400,
-        height: 600,
-        alwaysOnTop: true
-      })
-      this.subWindow.loadURL(url.format({
-          pathname: path.join(__dirname, '..', 'public', 'setting.html'),
-          protocol: 'file:',
-          slashes: true
-      }));
+      settingWindow.create()
+      this.createMainWindows()
       ipcMain.on('switch_mode', (e, data) => {windowManager.switchShowMode();});
+      ipcMain.on('ack', (e ,data) => {console.log(e, data);})
       ipcMain.on('set_clinet', (e, data) => {
+        console.log(data);
+        settingWindow.destroy();
         this.client = new MickrClient(data)
         this.client.on('mickr', (req, res) => {
           console.log("mickr request: ",req);
@@ -41,23 +37,21 @@ class windowManager extends EventEmitter{
             w.send('mickr', req.body.content);
           })
         })
-        this.subWindow.close()
-        this.createMainWindows()
         electron.screen.on('display-added', (e, d) => this.buildMainWindow(d))
         electron.screen.on('display-removed', (e, d) => {this.removeWindow(d)})
 
-        ioHook.on("mouseclick", e => {
-          var p = electron.screen.getCursorScreenPoint();
-          var d = electron.screen.getDisplayNearestPoint(p);
-          var w = this.getWindowWithDisplay(d);
-
-          w.webContents.send('click', {
-            x: p.x - d.bounds.x,
-            y: p.y - d.bounds.y
-          })
-        });
+        // ioHook.on("mouseclick", e => {
+        //   var p = electron.screen.getCursorScreenPoint();
+        //   var d = electron.screen.getDisplayNearestPoint(p);
+        //   var w = this.getWindowWithDisplay(d);
+        //
+        //   w.webContents.send('click', {
+        //     x: p.x - d.bounds.x,
+        //     y: p.y - d.bounds.y
+        //   })
+        // });
         //Register and start hook
-        ioHook.start();
+        // ioHook.start();
         ipcMain.on('collision',(e, d)=>{
           console.log("collision", d);
           var w = this.getWindowWithDisplay(electron.screen.getDisplayNearestPoint(electron.screen.getCursorScreenPoint()));
@@ -75,9 +69,6 @@ class windowManager extends EventEmitter{
           }
         });
       })
-      this.subWindow.on('closed', () => {
-        this.subWindow = null;
-      });
     }
     else if(mainWindow === null || mainWindow === undefined){
       this.createMainWindows()
@@ -87,9 +78,9 @@ class windowManager extends EventEmitter{
   quit(){
     this.getAllMainWindows.forEach(w=>{w.close()})
     this.mainWindows = {}
-    if(ioHook !== null || ioHook !== undefined){
-      ioHook.stop()
-    }
+    // if(ioHook !== null || ioHook !== undefined){
+    //   ioHook.stop()
+    // }
   }
 
   getWindowWithDisplay(d){
@@ -102,7 +93,6 @@ class windowManager extends EventEmitter{
   buildMainWindow(d){
     var w = this.mainWindows[d.id];
     if(w === null || w === undefined){
-      console.log(d);
       w = new BrowserWindow({
           x: d.bounds.x,
           y: d.bounds.y,
@@ -115,16 +105,17 @@ class windowManager extends EventEmitter{
           hasShadow: false
       });
       w.loadURL(url.format({
-          pathname: path.join(__dirname, '..', 'public', 'index.html'),
+          pathname: path.join(__dirname, '..', 'public', 'land.html'),
           protocol: 'file:',
           slashes: true
       }));
 
       w.setIgnoreMouseEvents(true)
       w.setFocusable(false);
-      w.setAlwaysOnTop(true, 'floating', 500);
+      w.setAlwaysOnTop(true, 'floating');
       w.setVisibleOnAllWorkspaces(true)
       w.on('closed', () => {w = null;});
+      console.log(d, w);
       this.mainWindows[d.id] = w;
       return w;
     }
@@ -139,6 +130,7 @@ class windowManager extends EventEmitter{
     this.mainWindows[d.id].close();
     this.mainWindows[d.id] = null;
   }
+  getMainWindowWithMouse(){return this.getWindowWithDisplay(electron.screen.getDisplayNearestPoint(electron.screen.getCursorScreenPoint()));}
 
   getAllMainWindows(){return Object.keys(this.mainWindows).map(k=>this.mainWindows[k])}
   getMainWindow(){return this.mainWindows[electron.screen.getPrimaryDisplay().id];}
