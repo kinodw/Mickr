@@ -33,10 +33,11 @@ electronを用いたMickrアプリケーション。全てのディスプレイ�
     * module.js: 雲の生成
   * lib
     * telepathy-client: Web上でTelepathyClientを使うためのライブラリ群
+  * web
+    * cast.html: Mickr Cast表示ページ(Web)
+    * web-land.html: Mickr Landの表示ページ(Web)
   * land.html: Mickr Landの表示ページ(Node.js)
   * setting.html: Node.js時に接続先設定画面
-  * cast.html: Mickr Cast表示ページ(Web)
-  * web-land.html: Mickr Landの表示ページ(Web)
 
 
 ## インストール手順
@@ -79,10 +80,14 @@ electronを用いたMickrアプリケーション。全てのディスプレイ�
     // 雲の追加
     var cloud = sky.addCloud({text: "もくもく",});
 
-### Sky([elementID])
+### Sky([option])
 コンストラクタ。雲を表示させる領域の生成。
 
-* elementID: string optional 雲を表示させたいDOM要素のid。引数がない場合は、自動でdiv要素`#sky`をHTMLのbody中に生成。
+* option
+  * elementID: String型, optional 雲を表示させたいDOM要素のid。引数がない場合は、自動でdiv要素`#sky`をHTMLのbody中に生成。
+  * id: String型, optional MickrClientのid。設定されていない場合、ランダムな文字列。
+  * site: String型, optional MickrClientのsite(接続先)。デフォルトでは"test"。
+  * token: String型, optional MickrClientのtoken(パスワード)。デフォルトでは"Pad:9948"
 
 **プロパティ**
 
@@ -103,6 +108,35 @@ electronを用いたMickrアプリケーション。全てのディスプレイ�
 
     var cloud = new Cloud()
     sky.appendCloud(cloud)
+
+### on(command, callback)
+
+`command` を受けた際の処理
+
+* `command`: String型, 必須, TelepathyサーバーのURL
+* `callback`: Function型, `function () {}`, 必須, `command` を受けた際の処理
+
+
+### send(option, callback)
+* `option`
+	* from: string 送信元
+	*	to: string 送信先,
+	* body: {
+		* command: string コマンド,
+		* content: optional メッセージ,
+		* response: boolean レスポンスを求めるか
+* `callback`: Function型, `function () {}`, 任意, 実行後の処理
+
+### broadcast(option, callback)
+* `option`
+	* from: string 送信元
+	*	to: string 送信先,
+	* body: {
+		* command: string コマンド,
+		* content: optional メッセージ,
+		* response: boolean レスポンスを求めるか
+* `callback`: Function型, `function () {}`, 任意, 実行後の処理
+
 
 ### Cloud([option])
 コンストラクタ。Sky上に表示する雲を生成する

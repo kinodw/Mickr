@@ -26,7 +26,7 @@ const wm = new windowManager()
 /* アプリケーションが起動した時の処理 */
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.on('ready', () => {
-  wm.activateWindows();
+  wm.activateMainWindows();
 
   /* メニューバー上のアイコンが押された場合の処理 */
   tray = new Tray(path.join(__dirname, 'lib', 'img', 'cloud_on.png'));
@@ -46,5 +46,5 @@ app.on('window-all-closed', () => {
 
 /* Mainプロセス起動時の処理 */
 app.on('activate', () => {
-  wm.activateWindows();
+  wm.activateMainWindows();
 });

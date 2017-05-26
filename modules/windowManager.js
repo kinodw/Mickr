@@ -18,9 +18,14 @@ class windowManager extends EventEmitter{
     this.show_mode = true;
     this.transparent_mode = true;
     this.pause = false;
+    this.page = 'land.html';
+  }
+
+  setPageURL(url){
+    this.page = url || 'land.html';
   }
   /* 透明ウィンドウの生成 */
-  activateWindows(){
+  activateMainWindows(){
     var mainWindow = this.getMainWindow();
     if(this.client == null){
       settingWindow.create()
@@ -31,12 +36,7 @@ class windowManager extends EventEmitter{
         console.log(data);
         settingWindow.destroy();
         this.client = new MickrClient(data)
-        this.client.on('mickr', (req, res) => {
-          console.log("mickr request: ",req);
-          this.getAllMainWindows().forEach(w=>{
-            w.send('mickr', req.body.content);
-          })
-        })
+        this.client.on('mickr', (req, res) => {this.getAllMainWindows().forEach(w => {w.send('mickr', req.body.content);})})
         electron.screen.on('display-added', (e, d) => this.buildMainWindow(d))
         electron.screen.on('display-removed', (e, d) => {this.removeWindow(d)})
 
@@ -53,7 +53,6 @@ class windowManager extends EventEmitter{
         //Register and start hook
         // ioHook.start();
         ipcMain.on('collision',(e, d)=>{
-          console.log("collision", d);
           var w = this.getWindowWithDisplay(electron.screen.getDisplayNearestPoint(electron.screen.getCursorScreenPoint()));
           if(d.transparent_mode){
             this.transparent_mode = true
@@ -70,9 +69,7 @@ class windowManager extends EventEmitter{
         });
       })
     }
-    else if(mainWindow === null || mainWindow === undefined){
-      this.createMainWindows()
-    }
+    else if(mainWindow === null || mainWindow === undefined){this.createMainWindows()}
   }
 
   quit(){
@@ -93,32 +90,49 @@ class windowManager extends EventEmitter{
   buildMainWindow(d){
     var w = this.mainWindows[d.id];
     if(w === null || w === undefined){
-      w = new BrowserWindow({
-          x: d.bounds.x,
-          y: d.bounds.y,
-          width: d.workAreaSize.width,
-          height: d.workAreaSize.height,
-          transparent: true,
-          frame: false,
-          alwaysOnTop: true,
-          // type: "desktop",
-          hasShadow: false
-      });
-      w.loadURL(url.format({
-          pathname: path.join(__dirname, '..', 'public', 'land.html'),
-          protocol: 'file:',
-          slashes: true
-      }));
-
-      w.setIgnoreMouseEvents(true)
-      w.setFocusable(false);
-      w.setAlwaysOnTop(true, 'floating');
-      w.setVisibleOnAllWorkspaces(true)
-      w.on('closed', () => {w = null;});
-      console.log(d, w);
-      this.mainWindows[d.id] = w;
+      this.mainWindows[d.id] = this.buildWindow({display: d});
       return w;
     }
+  }
+
+  buildWindow(option){
+    option.display = option.display || electron.screen.getPrimaryDisplay();
+    option.page = option.page || this.page;
+    option.x = option.x || option.display.bounds.x + option.x;
+    option.y = option.y || option.display.bounds.y + option.y;
+    option.width = option.width || option.display.workAreaSize.width;
+    option.height = option.height || option.display.workAreaSize.height;
+    option.transparent = option.transparent || true;
+    option.ignoreMouseEvent = option.ignoreMouseEvent || true;
+    option.AlwaysOnTop = option.AlwaysOnTop || true;
+
+    var w = new BrowserWindow({
+        x: option.x,
+        y: option.y,
+        width: option.width,
+        height: option.height,
+        transparent: option.transparent,
+        frame: false,
+        // type: "desktop",
+        hasShadow: false
+    });
+
+    console.log(option.page);
+    w.loadURL(url.format({
+        pathname: path.join(__dirname, '..', 'public', option.page),
+        protocol: 'file:',
+        slashes: true
+    }));
+    if(option.ignoreMouseEvent){
+      w.setIgnoreMouseEvents(true)
+      w.setFocusable(false);
+    }
+    if(option.AlwaysOnTop){
+      w.setAlwaysOnTop(true, 'floating');
+      w.setVisibleOnAllWorkspaces(true)
+    }
+    w.on('closed', () => {w = null;});
+    return w;
   }
 
   recreateWindow(d){

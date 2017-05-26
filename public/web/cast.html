@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="../lib/jquery/dist/jquery.js"></script>
+    <script src="../lib/bootstrap/bootstrap.js"></script>
+    <script src="../lib/material-design/dist/js/material.js"></script>
+    <script src="../lib/material-design/dist/js/ripples.min.js"></script>
+    <script type="text/javascript">$.material.init();</script>
+
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+    <link rel="stylesheet" type="text/css" href="../lib/bootstrap/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="../lib/material-design/dist/css/bootstrap-material-design.css">
+    <link rel="stylesheet" type="text/css" href="../lib/material-design/dist/css/ripples.css">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <script src="../lib/telepathy-client/lib/bson/bson.js"></script>
+    <script src="../lib/telepathy-client/lib/crypto-js/md5.js"></script>
+    <script src="../lib/telepathy-client/lib/EventEmitter/EventEmitter.js"></script>
+    <script src="../lib/telepathy-client/lib/node-uuid/uuid.js"></script>
+    <script src="../lib/telepathy-client/telepathy-client.js"></script>
+
+    <title>Mickr Cast</title>
+  </head>
+  <body>
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="form-horizontal mickr-setting">
+            <fieldset>
+              <legend>Mickr Cast</legend>
+              <div class="form-group">
+                <label for="inputID" class="col-md-2 control-label">ID</label>
+                <div class="col-md-10">
+                  <input type="text" class="form-control" id="ID" placeholder="ID">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputSite" class="col-md-2 control-label">Site</label>
+                <div class="col-md-10">
+                  <input type="text" class="form-control" id="Site" placeholder="Site">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputToken" class="col-md-2 control-label">Token</label>
+                <div class="col-md-10">
+                  <input type="password" class="form-control" id="Token" placeholder="Token">
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-md-10 col-md-offset-2">
+                  <button type="submit" class="btn btn-primary" id="submit">Submit</button>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="form-group label-floating">
+      <label class="control-label" for="focusedInput1">Write something to make the label float</label>
+      <input class="form-control" id="focusedInput" type="text">
+    </div>
+    <a href="javascript:void(0)" class="btn btn-raised btn-info" id="btn">CAST</a>
+
+    <script src="../js/MickrClient.js"></script>
+    <script>
+      $('ready', function(e){
+        $.material.init();
+        var client = null;
+
+        $('#myModal').modal()
+        $('#submit').click(function(e){
+          $('body').removeClass('modal-open');
+          $('.modal-backdrop').remove();
+          $('#myModal').modal('hide');
+
+          client = new MickrClient({
+            "id": $('#ID').val() || String(Math.random().toString(36).slice(-8)),
+            "url": "ws://apps.wisdomweb.net:64260/ws/mik",
+            "site": $('#Site').val() || "toralab",
+            "token": $('#Token').val() || "Pad:7732"
+          })
+
+          $('#btn').click(function(){
+            client.broadcast({
+              "body": {
+                "command": "mickr",
+                "content": {
+                  "text": $('#focusedInput').val()
+                }
+              }
+            }, function(req, res){
+              console.log(req,res);
+            });
+          })
+        })
+      })
+    </script>
+  </body>
+</html>

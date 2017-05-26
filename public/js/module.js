@@ -19,22 +19,36 @@
     }
 
     /* 雲を表示するベースの生成 */
-    window.Sky = class Sky {
-      constructor(elementID){
-        if(elementID === undefined){
+    window.Sky = class Sky{
+      constructor(option){
+        option = option || {};
+        this.client = null;
+        if(!isNode){
+          option.id = option.id || generateRandomID();
+          option.url = "ws://apps.wisdomweb.net:64260/ws/mik";
+          option.site = option.site || "test";
+          option.token = option.token || "Pad:9948"
+          this.client = new MickrClient(option);
+        }
+
+        if(option.element === undefined){
           var div = document.createElement('div');
           div.id = "sky";
           div.className = 'sky';
           document.body.appendChild(div)
           this.element = div;
         }else{
-          this.element = document.getElementById(elementID);
+          this.element = document.getElementById(option.elementID);
         }
         this.clouds = [];
         this.selected = [];
 
         if(isNode) this.setRendererEvent()
       }
+
+      send(command, message, callback){if(this.client !== null) this.client.send(command, message, callback)}
+      on(command, message, callback){if(this.client !== null) this.client.on(command, message, callback)}
+      broadcast(command, message, callback){if(this.client !== null) this.client.broadcast(command, message, callback)}
 
       setRendererEvent(){
         this.element.addEventListener('click', e => {
@@ -47,11 +61,7 @@
           }
         })
 
-        ipcRenderer.on('mickr', (e, data) => {
-          console.log('mickr');
-          ipcRenderer.send('ack', {"text": 'ack'});
-          this.addCloud(data)
-        });
+        ipcRenderer.on('mickr', (e, data) => {this.addCloud(data)});
 
         /* 透明画面の切り替え */
         ipcRenderer.on('switch_mode', (e, transparent_mode) => {
@@ -196,7 +206,6 @@
         option.visible = option.visible === undefined ? true : false;
 
         this.rotation = option.rotation;
-        console.log(this.rotation);
 
         this.id = option.id || generateRandomID();
         this.size = option.size || 1.0;

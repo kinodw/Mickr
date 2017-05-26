@@ -3,6 +3,7 @@
   window.MickrClient = class Mickrclient extends EventEmitter{
     /* メンバー要素 */
     constructor(option){
+      console.log(option);
       super()
       this.client = new TelepathyClient();
       this.isConnected = false;
@@ -49,7 +50,7 @@
           self.emit(message.body.command, message, response);
         }
       });
-      this.client.connect(this.settings.url, this.settings.site, this.settings.token );
+      this.client.connect(this.settings.url, this.settings.site, this.settings.token);
     }
 
     /* 通信確認 */
@@ -135,7 +136,7 @@
         body: Object, メッセージ(json)
       callback: 送信後の処理
     */
-    send(option, callback){
+    send(command, option, callback){
       return new Promise((resolve, reject) => {
         this.connect().then(()=>{
           const message = {
@@ -143,7 +144,7 @@
             "to": option.to === undefined ? undefined : option.to,
             "body": {
               "key": option.body.key === undefined ? this.generateRandomID() : option.body.key,
-              "command": option.body.command === undefined ? "test" : option.body.command,
+              "command": command === undefined ? "test" : command,
               "content": option.body.content === undefined ? "" : option.body.content,
               "response": option.body.response === undefined ? true : option.body.response
             }
@@ -158,13 +159,13 @@
       })
     }
     /* ブロードキャスト送信 */
-    broadcast(option, callback){
+    broadcast(command, option, callback){
       return this.send({
         "from": option.from === undefined ? this.settings.id : option.from,
         "to": undefined,
         "body": {
           "key": option.body.key === undefined ? this.generateRandomID() : option.body.key,
-          "command": option.body.command === undefined ? "test" : option.body.command,
+          "command": command === undefined ? "test" : command,
           "content": option.body.content === undefined ? "" : option.body.content,
           "response": option.body.response === undefined ? true : option.body.response
         }
