@@ -64,7 +64,7 @@
     </div>
     <a href="javascript:void(0)" class="btn btn-raised btn-info" id="btn">CAST</a>
 
-    <script src="../js/MickrClient.js"></script>
+    <script src="../js/module.js"></script>
     <script>
       $('ready', function(e){
         $.material.init();
@@ -84,9 +84,8 @@
           })
 
           $('#btn').click(function(){
-            client.broadcast({
+            client.broadcast("mickr", {
               "body": {
-                "command": "mickr",
                 "content": {
                   "text": $('#focusedInput').val()
                 }

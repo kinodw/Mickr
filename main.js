@@ -11,21 +11,25 @@ const path = require('path');
   screen: windowオブジェクトの設定
   BrowserWindow: electronで起動するwindow上におけるwindowオブジェクト
 */
-const {app, Tray, Menu, globalShortcut, powerSaveBlocker} = electron;
-
-const id = powerSaveBlocker.start('prevent-app-suspension');
-powerSaveBlocker.stop(id);
-
-const windowManager = require(path.join(__dirname, 'modules', 'windowManager.js'));
+const {app, ipcMain, Tray, Menu, globalShortcut, powerSaveBlocker} = electron;
+const MickrClient = require('./modules/MickrClient.js')
+const MickrWindow = require('./modules/MickrWindow.js')
+const SetMickrClientWindow = require('./modules/SetMickrClientWindow.js')
+// const EventManager = require('./modules/EventManager.js')
 
 let tray = null;
 let tray2 = null;
 
-const wm = new windowManager()
+const wm = new MickrWindow()
 
 /* アプリケーションが起動した時の処理 */
-app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.on('ready', () => {
+  SetMickrClientWindow.create()
+  ipcMain.on('set_clinet', (e, data) => {
+    this.client = new MickrClient(data)
+    this.client.on('mickr', (req, res) => {this.getAllMainWindows().forEach(w => {w.send('mickr', req.body.content);})})
+    SetMickrClientWindow.close()
+  })
   wm.activateMainWindows();
 
   /* メニューバー上のアイコンが押された場合の処理 */

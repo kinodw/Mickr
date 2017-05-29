@@ -60,7 +60,6 @@
     </div>
   </div>
 </div>
-  <script src="../js/MickrClient.js"></script>
   <script src="../js/module.js" charset="utf-8"></script>
   <script>
     $('ready', function(){
@@ -73,7 +72,7 @@
         $('.modal-backdrop').remove();
         $('#myModal').modal('hide');
 
-        var sky = new Sky({
+        var sky = new MickrSky({
           "id": $('#ID').val() || String(Math.random().toString(36).slice(-8)),
           "url": "ws://apps.wisdomweb.net:64260/ws/mik",
           "site": $('#Site').val() || "test",

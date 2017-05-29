@@ -2,8 +2,8 @@ const BrowserWindow = require('electron').BrowserWindow
 const url = require('url')
 const path = require('path')
 
-const subWindow = {
-  create: () => {
+const SetMickrClientWindow = {
+  create: (callback = () => {}) => {
     this.subWindow = new BrowserWindow({
       width: 480,
       height: 540,
@@ -17,11 +17,12 @@ const subWindow = {
     this.subWindow.focus()
     this.subWindow.on('closed', () => {
       this.subWindow = null;
+      callback()
     });
   },
-  destroy: () => {
+  close: () => {
     this.subWindow.close()
   }
 }
 
-module.exports = subWindow;
+module.exports = SetMickrClientWindow;

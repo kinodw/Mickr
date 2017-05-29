@@ -3,18 +3,14 @@ const path = require('path');
 const electron = require('electron')
 const EventEmitter = new require('events').EventEmitter;
 const {ipcMain, BrowserWindow } = electron;
-const MickrClient = require('./MickrClient.js')
-const settingWindow = require('./settingWindow.js');
 // const GoogleDriveAPI = require('./DriveAPI/app.js')
-// const ioHook = require('iohook');
 
 
-class windowManager extends EventEmitter{
+class MickrWindow extends EventEmitter{
   constructor(ipcMain){
     super()
     this.mainWindows = {}
     this.subWindow = null;
-    this.client = null;
     this.show_mode = true;
     this.transparent_mode = true;
     this.pause = false;
@@ -27,57 +23,32 @@ class windowManager extends EventEmitter{
   /* 透明ウィンドウの生成 */
   activateMainWindows(){
     var mainWindow = this.getMainWindow();
-    if(this.client == null){
-      settingWindow.create()
-      this.createMainWindows()
-      ipcMain.on('switch_mode', (e, data) => {windowManager.switchShowMode();});
-      ipcMain.on('ack', (e ,data) => {console.log(e, data);})
-      ipcMain.on('set_clinet', (e, data) => {
-        console.log(data);
-        settingWindow.destroy();
-        this.client = new MickrClient(data)
-        this.client.on('mickr', (req, res) => {this.getAllMainWindows().forEach(w => {w.send('mickr', req.body.content);})})
-        electron.screen.on('display-added', (e, d) => this.buildMainWindow(d))
-        electron.screen.on('display-removed', (e, d) => {this.removeWindow(d)})
-
-        // ioHook.on("mouseclick", e => {
-        //   var p = electron.screen.getCursorScreenPoint();
-        //   var d = electron.screen.getDisplayNearestPoint(p);
-        //   var w = this.getWindowWithDisplay(d);
-        //
-        //   w.webContents.send('click', {
-        //     x: p.x - d.bounds.x,
-        //     y: p.y - d.bounds.y
-        //   })
-        // });
-        //Register and start hook
-        // ioHook.start();
-        ipcMain.on('collision',(e, d)=>{
-          var w = this.getWindowWithDisplay(electron.screen.getDisplayNearestPoint(electron.screen.getCursorScreenPoint()));
-          if(d.transparent_mode){
-            this.transparent_mode = true
-            w.setIgnoreMouseEvents(true);
-            w.setFocusable(false);
-            w.webContents.send('switch_mode', true);
-          }
-          else{
-            this.transparent_mode = false
-            w.focus();
-            w.focusOnWebView();
-            w.webContents.send('switch_mode', false);
-          }
-        });
-      })
-    }
-    else if(mainWindow === null || mainWindow === undefined){this.createMainWindows()}
+    this.createMainWindows()
+    ipcMain.on('switch_mode', (e, data) => {windowManager.switchShowMode();});
+    ipcMain.on('ack', (e ,data) => {console.log(e, data);})
+    electron.screen.on('display-added', (e, d) => this.buildMainWindow(d))
+    electron.screen.on('display-removed', (e, d) => {this.removeWindow(d)})
+    ipcMain.on('collision',(e, d)=>{
+      var w = this.getWindowWithDisplay(electron.screen.getDisplayNearestPoint(electron.screen.getCursorScreenPoint()));
+      if(d.transparent_mode){
+        this.transparent_mode = true
+        w.setIgnoreMouseEvents(true);
+        w.setFocusable(false);
+        w.webContents.send('switch_mode', true);
+      }
+      else{
+        this.transparent_mode = false
+        w.focus();
+        w.focusOnWebView();
+        w.webContents.send('switch_mode', false);
+      }
+    });
+    if(mainWindow === null || mainWindow === undefined){this.createMainWindows()}
   }
 
   quit(){
     this.getAllMainWindows.forEach(w=>{w.close()})
     this.mainWindows = {}
-    // if(ioHook !== null || ioHook !== undefined){
-    //   ioHook.stop()
-    // }
   }
 
   getWindowWithDisplay(d){
@@ -102,9 +73,9 @@ class windowManager extends EventEmitter{
     option.y = option.y || option.display.bounds.y + option.y;
     option.width = option.width || option.display.workAreaSize.width;
     option.height = option.height || option.display.workAreaSize.height;
-    option.transparent = option.transparent || true;
-    option.ignoreMouseEvent = option.ignoreMouseEvent || true;
-    option.AlwaysOnTop = option.AlwaysOnTop || true;
+    option.transparent = option.transparent === undefined ? true : option.transparent;
+    option.ignoreMouseEvent = option.ignoreMouseEvent === undefined ? true : option.ignoreMouseEvent;
+    option.AlwaysOnTop = option.AlwaysOnTop === undefined ? true : option.AlwaysOnTop;
 
     var w = new BrowserWindow({
         x: option.x,
@@ -117,7 +88,6 @@ class windowManager extends EventEmitter{
         hasShadow: false
     });
 
-    console.log(option.page);
     w.loadURL(url.format({
         pathname: path.join(__dirname, '..', 'public', option.page),
         protocol: 'file:',
@@ -173,4 +143,4 @@ class windowManager extends EventEmitter{
   }
 }
 
-module.exports = windowManager
+module.exports = MickrWindow
