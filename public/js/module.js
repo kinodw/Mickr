@@ -242,8 +242,8 @@
     broadcast(command, message, callback){if(this.client !== null) this.client.broadcast(command, message, callback)}
 
     appendCloud(cloud){
-      cloud.createCloud(option);
-      cloud.addHandler(option);
+      console.log("append", cloud);
+      cloud.parent.appendChild(cloud.element)
       this.clouds.push(cloud);
     }
 
@@ -258,12 +258,7 @@
       }
 
       var cloud = new Cloud(option)
-
-      cloud.createCloud(option);
-      cloud.addHandler(option);
-      cloud.setAnimator()
-
-      this.clouds.push(cloud);
+      this.appendCloud(cloud);
       return cloud;
     };
 
@@ -301,7 +296,6 @@
     };
 
     onClick(cloud){
-      console.log("sky click");
       if (!cloud.selected) {
         this.selected.push(cloud);
         this.clouds.splice(this.clouds.indexOf(cloud), 1);
@@ -340,9 +334,17 @@
       this.id = option.id || generateRandomID();
       this.size = option.size || 1.0;
       this.tags = option.tags || ["none"];
+      this.createCloud(option);
+      this.addHandler(option);
 
       this.animator = null;
     };
+
+    appendSky(parent){
+      this.parent = parent || this.parent;
+      parent.appendChild(this.element);
+    };
+
 
     setAnimator(option){
       this.animator = new Animator({
@@ -362,6 +364,7 @@
 
     createCloud(option){
       if(this.element) return 0;
+      this.setAnimator()
       option.parent = option.parent || this.parent;
       option.color = option.color || "#FFFFFF";
       switch(option.type) {
@@ -377,20 +380,18 @@
           rect.innerText = option.text;
           this.element = rect;
           this.setPosition(option.position)
-          this.parent.appendChild(rect);
           break;
         case "custom":
-          this.parent.appendChild(option.body);
+          this.element = option.body || document.getElementById('div');
           break;
         default:
           this.element = this.createCloudElement();
-          console.log(this.parent);
           this.setColor(option.color);
           this.setText(option.text);
           this.setImage(option.url);
           this.setPosition(option.position)
           this.setSize(option.size)
-          this.parent.appendChild(this.element);
+          break;
       }
     };
 
@@ -419,19 +420,27 @@
       TweenLite.to(this.element, 2, {left: position.x, right: position.y})
     }
 
-    setText(text){
-      this.text = text || "";
-      this.element.querySelector('.cloud_text').innerText = text;
+    setText(text, color="#000000"){
+      this.text = text === undefined ? "" : text;
+      this.element.querySelector('.cloud_text').innerText = this.text;
+      this.element.querySelector('.cloud_text').style.color = color;
     };
 
     setColor(color){
       this.color = color || "#FFFFFF";
-      this.element.querySelector('.cloud path').style.fill = color;
+      this.element.querySelector('.cloud path').style.fill = this.color;
     };
 
     setImage(url){
       this.src = url;
-      if(url) this.element.querySelector('.cloud_image').src = url;
+      // var data = new Uint8Array(this.response);
+      // var oURL = URL.createObjectURL(new Blob([data], { type: "image/png" }));
+
+      if(url){
+        this.element.querySelector('.cloud_image').style.display = 'block'
+        this.element.querySelector('.cloud_image').src = url
+      }
+      else{this.element.querySelector('.cloud_image').style.display = 'none'}
     }
 
     remove(){
@@ -445,12 +454,11 @@
     };
 
     onClick(){
-      console.log("cloud click");
       if (this.selected) {
         this.animator.returnOuterAround()
       }
       else{
-        this.animator.timeline['click'].resume();
+        if(this.animator.timeline['click']) this.animator.resume('click');
         this.selected = true;
       }
     };
@@ -514,6 +522,16 @@
     initAnimation(){
       const self = this;
       this.animations = {
+        zero: () => {
+          var tl = new TimelineLite();
+          tl.add([TweenLite.to(self.element, 0.5, {scale: 1.0, x: 0, y: 0})])
+          return tl
+        },
+        expand: () => {
+          var tl = new TimelineLite();
+          tl.add([TweenLite.to(self.element, 0.5, {scale: 2.5})])
+          return tl
+        },
         /* 振動 */
         swing: (option) => {
           var tl = new TimelineLite();
@@ -845,11 +863,12 @@
   class MickrSky extends Sky{
     constructor(option){
       super(option)
-      if(!isNode){
+      if(!option) option.client = option.client || false;
+      if(!isNode && option.client){
         option.id = option.id || generateRandomID();
         option.url = "ws://apps.wisdomweb.net:64260/ws/mik";
         option.site = option.site || "test";
-        option.token = option.token || "Pad:9948"
+        option.token = option.token || "Pad:9948";
         this.client = new MickrClient(option);
       }
 
@@ -872,9 +891,9 @@
       cloud.addHandler(option);
       cloud.setAnimator()
       option['onComplete'] = cloud.remove;
-      cloud.animator.addGoAround(option);
+      if(option.around) cloud.animator.addGoAround(option);
 
-      this.clouds.push(cloud);
+      this.appendCloud(cloud);
       return cloud;
     };
 
@@ -926,8 +945,6 @@
   class MickrCloud extends Cloud{
     constructor(option){
       super(option)
-    }
-    createCloud(option){
       option.parent = option.parent || this.parent;
       option.color = option.color || "#FFFFFF";
       this.element = this.createCloudElement();
@@ -936,18 +953,20 @@
       this.setImage(option.url);
       this.setPosition(option.position)
       this.setSize(option.size)
-      this.parent.appendChild(this.element);
-    };
+      this.setAnimator()
+      this.animator.animations['click'] = this.animator.animations['centering']
+      this.animator.animations['clicked'] = this.animator.returnOuterAround;
+    }
     onClick(){
-      console.log("cloud click", this.selected);
       if (this.selected) {
-        this.animator.timeline['click'].pause()
-        this.animator.returnOuterAround()
+        this.animator.pause('click')
+        this.animator.animations['clicked']()
+        // this.animator.returnOuterAround()
         this.selected = false;
       }
       else{
-        this.animator.timeline['around'].pause()
-        this.animator.timeline['click'] = this.animator.animations['centering']()
+        this.animator.pause('around')
+        this.animator.timeline['click'] = this.animator.animations['click']()
         this.selected = true;
       }
     }

@@ -31,8 +31,7 @@ app.on('ready', () => {
   d = electron.screen.getPrimaryDisplay()
   mainWindow = wManager.buildWindow({
     page: 'example/clip.html',
-    x: 0,
-    // x: d.workAreaSize.width - 150,
+    x: d.workAreaSize.width - 150,
     y: 0,
     width: 150,
     height: 150,
@@ -43,18 +42,13 @@ app.on('ready', () => {
 
   mainWindow.focus()
 
-  setInterval(() => {
-    x++;
-    y++;
-    mainWindow.setPosition(x, y)
-  }, 50)
-
   wAnimator.setWindow(mainWindow);
   wAnimator.initAnimation()
   wAnimator.addGoAround()
 
   ClipboardHandler.on('update', (data) => {
     if(mainWindow){
+      console.log(data);
       mainWindow.webContents.send('clip', data)
     }
   })
