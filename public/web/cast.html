@@ -172,6 +172,7 @@
 
         var sky = new MickrSky({
           "elementID": "sky",
+          "client": true,
           "id": "cast",
           "url": "ws://apps.wisdomweb.net:64260/ws/mik",
           "site": "ashun",
@@ -197,6 +198,12 @@
           cloud.setColor($('#color').val());
         })
 
+        var url = null;
+        var around = true;
+        var swing = true;
+        var rotation = true;
+        var visible = true;
+
         $("#img-file").change(function(e){
           console.log("img changed");
           var file = e.target.files[0];
@@ -204,10 +211,16 @@
           var reader = new FileReader()
           if(file.type.indexOf("image") < 0){return false;}
           reader.addEventListener('loadend', function(e){
+            url = e.target.result;
             cloud.setImage(e.target.result)
           })
           reader.readAsDataURL(file)
         })
+
+        $('#ch-around').change(function(){around = !around})
+        $('#ch-swing').change(function(){swing = !swing})
+        $('#ch-rotation').change(function(){rotation = !rotation})
+        $('#ch-visible').change(function(){visible = !visible})
 
         $('#myModal').modal()
         $('#submit').click(function(e){
@@ -222,11 +235,19 @@
           //   "token": $('#Token').val() || "Pad:7732"
           // })
           //
+
           $('#btn').click(function(){
+            console.log("client");
             sky.broadcast("mickr", {
               "body": {
                 "content": {
-                  "text": $('#focusedInput').val()
+                  "color": $('#color').val(),
+                  "text": $('#text').val(),
+                  "url": url,
+                  "around": around,
+                  "swing": swing,
+                  "rotaton": rotation,
+                  "visible": visible
                 }
               }
             }, function(req, res){

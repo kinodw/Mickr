@@ -242,7 +242,7 @@
     broadcast(command, message, callback){if(this.client !== null) this.client.broadcast(command, message, callback)}
 
     appendCloud(cloud){
-      console.log("append", cloud);
+
       cloud.parent.appendChild(cloud.element)
       this.clouds.push(cloud);
     }
@@ -340,6 +340,12 @@
       this.animator = null;
     };
 
+    export(){
+      return {
+
+      }
+    }
+
     appendSky(parent){
       this.parent = parent || this.parent;
       parent.appendChild(this.element);
@@ -355,10 +361,11 @@
     }
 
     isCollision(x, y){
-      var X = x - parseInt(this.element.style.left);
-      var Y = y - parseInt(this.element.style.top);
-      var W = this.element.querySelector('.cloud').width.animVal.value;
-      var H = this.element.querySelector('.cloud').height.animVal.value;
+      var rect = this.element.getBoundingClientRect();
+      var X = x - rect.left;
+      var Y = y - rect.top;
+      var W = rect.width;
+      var H = rect.height;
       return(X >= 0 && X <= W && Y >=0 && Y <= H);
     }
 
@@ -407,9 +414,10 @@
     }
 
     getPosition(){
+      var rect = this.element.getBoundingClientRect();
       return {
-        x: parseInt(this.element.style.left),
-        y: parseInt(this.element.style.top)
+        x: parseInt(rect.left),
+        y: parseInt(rect.top)
       }
     }
 
@@ -862,8 +870,8 @@
 
   class MickrSky extends Sky{
     constructor(option){
+      option = option || {};
       super(option)
-      if(!option) option.client = option.client || false;
       if(!isNode && option.client){
         option.id = option.id || generateRandomID();
         option.url = "ws://apps.wisdomweb.net:64260/ws/mik";
