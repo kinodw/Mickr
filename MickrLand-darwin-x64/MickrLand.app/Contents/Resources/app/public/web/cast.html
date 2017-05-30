@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script src="../lib/jquery/dist/jquery.js"></script>
+    <script src="../lib/bootstrap/bootstrap.js"></script>
+    <script src="../lib/material-design/dist/js/material.js"></script>
+    <script src="../lib/material-design/dist/js/ripples.min.js"></script>
+    <script src="../lib/jscolor/jscolor.js"></script>
+    <script src="../lib/TweenMax/TweenMax.js"></script>
+    <script type="text/javascript">$.material.init();</script>
+
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+    <link rel="stylesheet" type="text/css" href="../lib/bootstrap/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="../lib/material-design/dist/css/bootstrap-material-design.css">
+    <link rel="stylesheet" type="text/css" href="../lib/material-design/dist/css/ripples.css">
+    <link rel="../lib/bootstrap-colorpickersliders/dist/bootstrap.colorpickersliders.min.css">
+    <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:300,400,500,700" type="text/css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <script src="../lib/telepathy-client/lib/bson/bson.js"></script>
+    <script src="../lib/telepathy-client/lib/crypto-js/md5.js"></script>
+    <script src="../lib/telepathy-client/lib/EventEmitter/EventEmitter.js"></script>
+    <script src="../lib/telepathy-client/lib/node-uuid/uuid.js"></script>
+    <script src="../lib/telepathy-client/telepathy-client.js"></script>
+
+    <title>Mickr Cast</title>
+  </head>
+  <body>
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="form-horizontal mickr-setting">
+            <fieldset>
+              <legend>Mickr Cast</legend>
+              <div class="form-group">
+                <label for="inputID" class="col-md-2 control-label">ID</label>
+                <div class="col-md-10">
+                  <input type="text" class="form-control" id="ID" placeholder="ID">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputSite" class="col-md-2 control-label">Site</label>
+                <div class="col-md-10">
+                  <input type="text" class="form-control" id="Site" placeholder="Site">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputToken" class="col-md-2 control-label">Token</label>
+                <div class="col-md-10">
+                  <input type="password" class="form-control" id="Token" placeholder="Token">
+                </div>
+              </div>
+              <div class="form-group">
+                <div class="col-md-10 col-md-offset-2">
+                  <button type="submit" class="btn btn-primary" id="submit">Submit</button>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+      .input-form{
+        position: absolute;
+        left: 50px;
+        top: 50px;
+        width: 500px;
+        height: 500px;
+      }
+      .form-main {
+        position: absolute;
+        top: 150px;
+        left: 0;
+      }
+      .file_input_div {
+        margin: auto;
+        width: 250px;
+        height: 40px;
+      }
+
+      .file_input {
+        float: left;
+      }
+
+      #file_input_text_div {
+        width: 200px;
+        margin-top: -8px;
+        margin-left: 5px;
+      }
+
+      .none {
+        display: none;
+      }
+      .sky {
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        top: 100px;
+        left: 225px;
+        width: 500px;
+      }
+    </style>
+    <div class="card input-form">
+      <div class="form-main">
+        <div class="form-group">
+          <label for="type" class="col-md-2 control-label">Type</label>
+          <div class="col-md-10">
+            <select id="type" class="form-control">
+              <option value="Apple fritter">Cloud</option>
+              <option value="Croissant">Rect</option>
+              <option value="Donut">Custom</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="text" class="col-md-2 control-label">Text</label>
+          <div class="col-md-10">
+            <input type="text" class="form-control" id="text" placeholder="Text">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="color" class="col-md-2 control-label">Text Color</label>
+          <div class="col-md-10">
+            <input class="jscolor form-control" id="text-color" value="000000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="inputFile" class="col-md-2 control-label">File</label>
+          <div class="col-md-10">
+            <input type="text" readonly="" class="form-control" placeholder="Image file...">
+            <input type="file" id="img-file" multiple="">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="color" class="col-md-2 control-label">Color</label>
+          <div class="col-md-10">
+            <input class="jscolor form-control" id="color" value="999999">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="col-sm-2" for="ch1">Animation</label>
+          <div class="col-sm-10">
+            <div class="checkbox">
+              <label>
+                <input id="ch-around" type="checkbox" checked=""> Around　
+              </label>
+              <label>
+                <input id="ch-rotation" type="checkbox" checked=""> Rotation　
+              </label>
+              <label>
+                <input id="ch-swing" type="checkbox" checked=""> Swing　
+              </label>
+              <label>
+                <input id="ch-visible" type="checkbox" checked=""> Visible　
+              </label>
+            </div>
+          </div>
+        </div>
+        <div>
+          <a href="javascript:void(0)" class="btn btn-raised btn-info" id="btn">CAST</a>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/module.js"></script>
+    <script>
+      $('ready', function(e){
+        $.material.init();
+        var client = null;
+
+        var sky = new MickrSky({
+          "elementID": "sky",
+          "client": true,
+          "id": "cast",
+          "url": "ws://apps.wisdomweb.net:64260/ws/mik",
+          "site": "ashun",
+          "token": "Pad:7732"
+        });
+        var cloud = sky.addCloud({
+          around: false,
+          random: false,
+          immortal: true,
+          color: "#999999"
+        })
+        cloud.animator.animations['click'] = cloud.animator.animations['expand'];
+        cloud.animator.animations['clicked'] = cloud.animator.animations['zero'];
+
+
+        $('#text').change(function(){
+          cloud.setText($('#text').val(), '#'+$('#text-color').val());
+        })
+
+        $('#text-color').change(function(){
+          console.log($('#text-color').val());
+          cloud.setText($('#text').val(), '#'+$('#text-color').val());
+        })
+
+        $('#color').change(function(){
+          cloud.setColor($('#color').val());
+        })
+
+        var url = null;
+        var around = true;
+        var swing = true;
+        var rotation = true;
+        var visible = true;
+
+        $("#img-file").change(function(e){
+          console.log("img changed");
+          var file = e.target.files[0];
+          console.log(file);
+          var reader = new FileReader()
+          if(file.type.indexOf("image") < 0){return false;}
+          reader.addEventListener('loadend', function(e){
+            url = e.target.result;
+            cloud.setImage(e.target.result)
+          })
+          reader.readAsDataURL(file)
+        })
+
+        $('#ch-around').change(function(){around = !around})
+        $('#ch-swing').change(function(){swing = !swing})
+        $('#ch-rotation').change(function(){rotation = !rotation})
+        $('#ch-visible').change(function(){visible = !visible})
+
+        $('#myModal').modal()
+        $('#submit').click(function(e){
+          $('body').removeClass('modal-open');
+          $('.modal-backdrop').remove();
+          $('#myModal').modal('hide');
+
+          // client = new MickrClient({
+          //   "id": $('#ID').val() || String(Math.random().toString(36).slice(-8)),
+          //   "url": "ws://apps.wisdomweb.net:64260/ws/mik",
+          //   "site": $('#Site').val() || "toralab",
+          //   "token": $('#Token').val() || "Pad:7732"
+          // })
+          //
+
+          $('#btn').click(function(){
+            console.log("client");
+            sky.broadcast("mickr", {
+              "body": {
+                "content": {
+                  "color": $('#color').val(),
+                  "text": $('#text').val(),
+                  "textColor": $('#text-color').val(),
+                  "url": url,
+                  "around": around,
+                  "swing": swing,
+                  "rotaton": rotation,
+                  "visible": visible
+                }
+              }
+            }, function(req, res){
+              console.log(req,res);
+            });
+            // client.broadcast("mickr", {
+            //   "body": {
+            //     "content": {
+            //       "text": $('#focusedInput').val()
+            //     }
+            //   }
+            // }, function(req, res){
+            //   console.log(req,res);
+            // });
+          })
+        })
+      })
+    </script>
+  </body>
+</html>

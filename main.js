@@ -27,7 +27,10 @@ app.on('ready', () => {
   SetMickrClientWindow.create()
   ipcMain.on('set_clinet', (e, data) => {
     this.client = new MickrClient(data)
-    this.client.on('mickr', (req, res) => {this.getAllMainWindows().forEach(w => {w.send('mickr', req.body.content);})})
+    this.client.on('mickr', (req, res) => {wm.getAllMainWindows().forEach(w => {
+      w.send('mickr', req.body.content);
+      console.log('mickr', req.body.content);
+    })})
     SetMickrClientWindow.close()
   })
   wm.activateMainWindows();

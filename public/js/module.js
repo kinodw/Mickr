@@ -242,7 +242,6 @@
     broadcast(command, message, callback){if(this.client !== null) this.client.broadcast(command, message, callback)}
 
     appendCloud(cloud){
-
       cloud.parent.appendChild(cloud.element)
       this.clouds.push(cloud);
     }
@@ -258,6 +257,8 @@
       }
 
       var cloud = new Cloud(option)
+      cloud.addHandler(option);
+      cloud.option = option;
       this.appendCloud(cloud);
       return cloud;
     };
@@ -278,13 +279,8 @@
       });
     };
 
-
-    mouseover(cloud){
-    };
-
-    mouseout(cloud){
-    };
-
+    mouseover(cloud){};
+    mouseout(cloud){};
     onComplete(cloud){this.clouds.splice(this.clouds.indexOf(cloud), 1);};
 
     returnClouds(){
@@ -324,26 +320,20 @@
       this.element = null;
       this.clickAnimation = () => {}
 
-      option.swing = option.swing === undefined ? true : false;
-      option.rotation = option.rotation === undefined ? false : true;
-      option.around = option.around === undefined ? true : false;
-      option.visible = option.visible === undefined ? true : false;
-
-      this.rotation = option.rotation;
+      this.visible = option.visible === undefined ? true : option.visible;
+      this.color = option.color || "#FFFFFF";
 
       this.id = option.id || generateRandomID();
       this.size = option.size || 1.0;
       this.tags = option.tags || ["none"];
       this.createCloud(option);
-      this.addHandler(option);
-
-      this.animator = null;
+      this.setAnimator(option)
     };
 
     export(){
-      return {
-
-      }
+      var ret = this.option;
+      ret.text = this.text;
+      ret.position = this.getPosition();
     }
 
     appendSky(parent){
@@ -371,9 +361,6 @@
 
     createCloud(option){
       if(this.element) return 0;
-      this.setAnimator()
-      option.parent = option.parent || this.parent;
-      option.color = option.color || "#FFFFFF";
       switch(option.type) {
         case "rect":
           console.log("rect");
@@ -383,7 +370,7 @@
           rect.style.fontColor = "black";
           rect.style.border = 'black solid 1px'
           rect.style.backgroundColor = option.color;
-          rect.style.opacity = option.visible && option.visible === undefined ? 1.0 : 0.0;
+          rect.style.opacity = this.visible && this.visible === undefined ? 1.0 : 0.0;
           rect.innerText = option.text;
           this.element = rect;
           this.setPosition(option.position)
@@ -394,7 +381,7 @@
         default:
           this.element = this.createCloudElement();
           this.setColor(option.color);
-          this.setText(option.text);
+          this.setText(option.text, option.textColor);
           this.setImage(option.url);
           this.setPosition(option.position)
           this.setSize(option.size)
@@ -404,8 +391,8 @@
 
     getSize(){
       return {
-        width: parseInt(this.element.width),
-        height: parseInt(this.element.height)
+        width: this.element.getBoundingClientRect().width,
+        height: this.element.getBoundingClientRect().height
       }
     }
 
@@ -423,13 +410,14 @@
 
     setPosition(position){
       position = position || {x:0, y:0};
-      this.element.style.left = position.x+"px";
-      this.element.style.top = position.y+"px";
-      TweenLite.to(this.element, 2, {left: position.x, right: position.y})
+      // this.element.style.left = position.x+"px";
+      // this.element.style.top = position.y+"px";
+      TweenLite.to(this.element, 0, {x: position.x, y: position.y})
     }
 
-    setText(text, color="#000000"){
+    setText(text, color){
       this.text = text === undefined ? "" : text;
+      color = color === undefined ? "#000000" : color;
       this.element.querySelector('.cloud_text').innerText = this.text;
       this.element.querySelector('.cloud_text').style.color = color;
     };
@@ -458,7 +446,7 @@
     addHandler(option){
       this.element.addEventListener('mouseover', (() => {option.mouseover(this);}).bind(this));
       this.element.addEventListener('mouseout', (() => {option.mouseout(this);}).bind(this));
-      this.element.addEventListener('click', (e => {if(option.onClick) option.onClick(this);}).bind(this));
+      this.element.addEventListener('click', (e => {this.onClick();}).bind(this));
     };
 
     onClick(){
@@ -472,7 +460,7 @@
     };
 
     getPosition(){
-      this.position = {x: parseInt(this.element.style.left), y: parseInt(this.element.style.top)};
+      this.position = {x: this.element.getBoundingClientRect().left, y: this.element.getBoundingClientRect().top};
       return this.position;
     }
 
@@ -527,7 +515,7 @@
       this.timeline = {};
     }
 
-    initAnimation(){
+    initAnimation(op){
       const self = this;
       this.animations = {
         zero: () => {
@@ -535,8 +523,9 @@
           tl.add([TweenLite.to(self.element, 0.5, {scale: 1.0, x: 0, y: 0})])
           return tl
         },
-        expand: () => {
+        expand: (ratio, duration=0.5) => {
           var tl = new TimelineLite();
+          ratio = ratio === undefined ? 2.5 : ratio;
           tl.add([TweenLite.to(self.element, 0.5, {scale: 2.5})])
           return tl
         },
@@ -653,7 +642,12 @@
           return tl;
         },
 
-        fromTo: (start={x:0, y:0}, end={x:0, y:0}, duration=2) => TweenLite.fromTo(self.element, duration, {left: start.x, top: position.y}, {left: end.x, top: end.y}),
+        to: (position={x:0, y:0}, duration=2) => {
+          var tl = new TimelineLite();
+          tl.add([TweenLite.to(self.element, duration, {left: position.x, top: position.y})])
+          return tl
+        },
+        fromTo: (start={x:0, y:0}, end={x:0, y:0}, duration=2) => TweenLite.fromTo(self.element, duration, {left: start.x, top: start.y}, {left: end.x, top: end.y}),
         rotate: (angle=0, duration=2) => TweenLite.to(self.element, duration, {rotation: angle,}),
         fadeIn: (duration=2 ,alpha=1.0) => TweenLite.to(self.element, duration, {alpha:alpha}),
         fadeOut:(duration=2) => TweenLite.to(self.element, duration, {alpha:alpha}),
@@ -690,14 +684,17 @@
 
           return tl;
         },
-        centering: () => {
+        centering: (position, ratio=3.0, duration=2.0) => {
           var tl = new TimelineLite();
+          position = position || {x: w/2 - 100, y: h/2 - 100};
+          position.x = position.x || w/2 - 100;
+          position.y = position.y || h/2 - 100;
           var animations = [TweenLite.to(self.element, 2, {
             rotation: 0,
             xPercent: 0,
             yPercent: 0,
-            x: w/2 - 100,
-            y: h/2 - 100
+            x: position.x,
+            y: position.y
           }), TweenLite.to(self.element, 2, {
             scale: 3.0
           })];
@@ -726,7 +723,7 @@
       this.timeline['around'] = this.goAround({
         el: this.element,
         swing: option.swing === undefined ? false : option.swing,
-        rotation: option.rotation,
+        rotation: option.rotation === undefined ? false : option.rotation,
         position: option.position,
         onUpdate: (tl => {this.now = tl.totalTime();}).bind(this),
         onComplete: option.onComplete
@@ -768,7 +765,7 @@
       return tl;
     };
 
-    goAroundSmall(){
+    goAroundSmall(center, r){
       var tl = new TimelineLite({
         onComplete: self => {self.restart();},
         onCompleteParams: ["{self}"],
@@ -891,16 +888,16 @@
         option.mouseout = option.mouseout || this.mouseout.bind(this);
         option.onComplete = option.onComplete || this.onComplete.bind(this);
         option.onClick = option.onClick || this.onClick.bind(this);
+        option.swing = option.swing === undefined ? true : option.swing;
+        option.rotation = option.rotation === undefined ? false : option.rotation;
+        option.around = option.around === undefined ? true : option.around;
+        option.visible = option.visible === undefined ? true : option.visible;
+        option.random = option.random === undefined ? true : option.random;
+        option.immortal = option.immortal === undefined ? false : option.immortal;
       }
 
       var cloud = new MickrCloud(option)
-
-      cloud.createCloud(option);
-      cloud.addHandler(option);
-      cloud.setAnimator()
-      option['onComplete'] = cloud.remove;
-      if(option.around) cloud.animator.addGoAround(option);
-
+      cloud.addHandler(option)
       this.appendCloud(cloud);
       return cloud;
     };
@@ -916,7 +913,9 @@
         }
       })
 
-      ipcRenderer.on('mickr', (e, data) => {this.addCloud(data)});
+      ipcRenderer.on('mickr', (e, data) => {
+        this.addCloud(data)
+      });
 
       /* 透明画面の切り替え */
       ipcRenderer.on('switch_mode', (e, transparent_mode) => {
@@ -957,13 +956,22 @@
       option.color = option.color || "#FFFFFF";
       this.element = this.createCloudElement();
       this.setColor(option.color);
-      this.setText(option.text);
+      this.setText(option.text, option.textColor);
       this.setImage(option.url);
       this.setPosition(option.position)
       this.setSize(option.size)
-      this.setAnimator()
-      this.animator.animations['click'] = this.animator.animations['centering']
-      this.animator.animations['clicked'] = this.animator.returnOuterAround;
+      this.setAnimator(option)
+
+      option['onComplete'] = this.remove;
+      if(option.around){this.animator.addGoAround(option);}
+      else {
+        if(option.random) this.setPosition(generateRandomInt(0, w-150), generateRandomInt(0, h-150));
+        if(!option.immortal){setTimeout(() => {this.remove()}, 10000)}
+      }
+      this.option = option;
+
+      this.animator.animations['click'] = this.animator.animations['centering'].bind(this.animator);
+      this.animator.animations['clicked'] = this.animator.returnOuterAround.bind(this.animator);
     }
     onClick(){
       if (this.selected) {

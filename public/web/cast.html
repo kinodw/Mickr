@@ -179,6 +179,9 @@
           "token": "Pad:7732"
         });
         var cloud = sky.addCloud({
+          around: false,
+          random: false,
+          immortal: true,
           color: "#999999"
         })
         cloud.animator.animations['click'] = cloud.animator.animations['expand'];
@@ -243,10 +246,11 @@
                 "content": {
                   "color": $('#color').val(),
                   "text": $('#text').val(),
+                  "textColor": '#'+$('#text-color').val(),
                   "url": url,
                   "around": around,
                   "swing": swing,
-                  "rotaton": rotation,
+                  "rotation": rotation,
                   "visible": visible
                 }
               }
