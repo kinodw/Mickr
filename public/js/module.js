@@ -412,7 +412,7 @@
       position = position || {x:0, y:0};
       // this.element.style.left = position.x+"px";
       // this.element.style.top = position.y+"px";
-      TweenLite.to(this.element, 0, {x: position.x, y: position.y})
+      // this.animator.animations['to'](position, 0)
     }
 
     setText(text, color){

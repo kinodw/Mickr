@@ -41,12 +41,21 @@ electronを用いたMickrアプリケーション。全てのディスプレイ�
 
 
 ## インストール手順
-    git clone http://spring.ics.nitech.ac.jp:8081/git/ashun/MickrLand.git
+    git clone http://spring.ics.nitech.ac.jp:8081/git/ashun/Land.git
     npm install
 
 ## Mainプロセス
-### windowManager
+### MickrWindow
 透明ウィンドウの作成。外部デバイス情報を取得し、全てのディスプレイと全てのワークスペースの斎場面にウィンドウを生成。
+
+#### buildWindow(option)
+ウィンドウの作成。
+* option:
+  * page: 表示するHTMLページ
+  * x: x座標(left)
+  * y: y座標(top)
+  * width: ウィンドウサイズ(横)
+  * height: ウィンドウサイズ(縦)
 
 #### activateWindows()
 透明ウィンドウを生成し、MickrClientが設定されていない場合、設定画面を生成する。設定画面の情報をもとにMickrClientオブジェクトを生成し、メッセージを取得できる状態にする。

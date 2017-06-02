@@ -19,6 +19,7 @@ const SetMickrClientWindow = require('./modules/SetMickrClientWindow.js')
 
 let tray = null;
 let tray2 = null;
+let client = null;
 
 const wm = new MickrWindow()
 
@@ -26,8 +27,9 @@ const wm = new MickrWindow()
 app.on('ready', () => {
   SetMickrClientWindow.create()
   ipcMain.on('set_clinet', (e, data) => {
-    this.client = new MickrClient(data)
-    this.client.on('mickr', (req, res) => {wm.getAllMainWindows().forEach(w => {
+    client = new MickrClient(data)
+    console.log(client);
+    client.on('mickr', (req, res) => {wm.getAllMainWindows().forEach(w => {
       w.send('mickr', req.body.content);
       console.log('mickr', req.body.content);
     })})

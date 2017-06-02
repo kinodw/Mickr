@@ -73,6 +73,7 @@
         $('#myModal').modal('hide');
 
         var sky = new MickrSky({
+          "client": true,
           "id": $('#ID').val() || String(Math.random().toString(36).slice(-8)),
           "url": "ws://apps.wisdomweb.net:64260/ws/mik",
           "site": $('#Site').val() || "test",

@@ -64,13 +64,16 @@ class MickrWindow extends EventEmitter{
       this.mainWindows[d.id] = this.buildWindow({display: d});
       return w;
     }
+    else{
+      return w;
+    }
   }
 
   buildWindow(option){
     option.display = option.display || electron.screen.getPrimaryDisplay();
     option.page = option.page || this.page;
-    option.x = option.x || option.display.bounds.x + option.x;
-    option.y = option.y || option.display.bounds.y + option.y;
+    option.x = option.display.bounds.x + (option.x === undefined ? 0 : option.x);
+    option.y = option.display.bounds.y + (option.y === undefined ? 0 : option.y);
     option.width = option.width || option.display.workAreaSize.width;
     option.height = option.height || option.display.workAreaSize.height;
     option.transparent = option.transparent === undefined ? true : option.transparent;
@@ -98,10 +101,11 @@ class MickrWindow extends EventEmitter{
       w.setFocusable(false);
     }
     if(option.AlwaysOnTop){
-      w.setAlwaysOnTop(true, 'floating');
+      w.setAlwaysOnTop(true, 'floating', 500);
       w.setVisibleOnAllWorkspaces(true)
     }
     w.on('closed', () => {w = null;});
+    console.log("window",w.getPosition());
     return w;
   }
 
